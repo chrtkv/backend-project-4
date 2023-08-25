@@ -1,0 +1,32 @@
+{
+  "name": "@hexlet/code",
+  "version": "0.0.1",
+  "description": "Page Loader",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "page-loader": "./bin/index.js"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrtkv/backend-project-4.git"
+  },
+  "author": "Kirill Chertkov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chrtkv/backend-project-4/issues"
+  },
+  "homepage": "https://github.com/chrtkv/backend-project-4#readme",
+  "dependencies": {
+    "commander": "^11.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.48.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-fp": "^2.3.0",
+    "jest": "^29.6.4"
+  }
+}
