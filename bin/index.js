@@ -11,7 +11,8 @@ program
   .action((url) => {
     const { output: outputPath } = program.opts();
     pageLoader(url, outputPath)
-      .then((path) => console.log(path));
+      .then((path) => console.log(path))
+      .catch((error) => console.error('Error saving file:', error)
   });
 
 program.parse();
