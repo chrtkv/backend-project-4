@@ -10,8 +10,8 @@ program
   .option('-f, --output [dir]', 'output dir (default: "/home/user/current-dir")')
   .action((url) => {
     const { output: outputPath } = program.opts();
-    const path = pageLoader(url, outputPath);
-    console.log(path);
+    pageLoader(url, outputPath)
+      .then((path) => console.log(path));
   });
 
 program.parse();
