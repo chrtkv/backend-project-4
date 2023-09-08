@@ -1,18 +1,19 @@
-import axios from 'axios';
 import fsp from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
-const composeFilename = (url) => {
-  const { hostname, pathname } = new URL(url);
-  const sanitizedUrl = `${hostname}${pathname}`.replaceAll(/[^a-z\d]/g, '-');
-  return `${sanitizedUrl}.html`;
-};
+import {
+  getLocalName, downloadHtml, downloadImages, replaceImgSrcs,
+} from './utils.js';
 
 export default (url, outputDir = process.cwd()) => {
-  const filename = composeFilename(url);
-  const filepath = path.resolve(outputDir, filename);
+  const normalizedOutputDir = outputDir.replace(/^~/, os.homedir());
+  const filename = getLocalName(url, 'html');
+  const filepath = path.resolve(normalizedOutputDir, filename);
 
-  return axios.get(url)
-    .then((response) => fsp.writeFile(filepath, response.data))
+  return downloadHtml(url, outputDir)
+    .then((htmlPath) => downloadImages(url, normalizedOutputDir, htmlPath))
+    .then((imgPaths) => replaceImgSrcs(filepath, imgPaths))
+    .then((html) => fsp.writeFile(filepath, html))
     .then(() => filepath);
 };
