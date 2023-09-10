@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import prettier from 'prettier';
 
 import {
-  downloadHtml, downloadImages, replaceImgSrcs,
+  downloadHtml, downloadResources, replaceLinks,
 } from '../src/utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -49,20 +49,41 @@ describe('utils', () => {
     expect(resultPath).toEqual(expectedResult);
   });
 
-  it('should download images', async () => {
+  it('should download resources', async () => {
     nock('https://ru.hexlet.io')
       .get('/assets/professions/nodejs.png')
       .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
 
+    nock('https://ru.hexlet.io')
+      .get('/assets/application.css')
+      .reply(200, await getFixtureContent('application.css'));
+
+    nock('https://ru.hexlet.io')
+      .get('packs/js/runtime.js')
+      .replyWithFile(200, path.resolve(fixturesPath, 'runtime.js'));
+
     const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
+    const links = await downloadResources(url, outputDir, originalHtmlPath);
 
-    const [{ newSrc: downloadPath }] = await downloadImages(url, outputDir, originalHtmlPath);
-    const resultFilePath = path.resolve(outputDir, downloadPath);
-    await fsp.access(resultFilePath, fsp.constants.F_OK);
-    const result = await fsp.readFile(resultFilePath, 'utf-8'); // норм ли для картинки?
-    const expectedResult = await getFixtureContent('nodejs.png');
+    const pngLink = links.find((link) => link.oldLink.endsWith('/assets/professions/nodejs.png'));
+    const cssLink = links.find((link) => link.oldLink.endsWith('/assets/application.css'));
+    const jsLink = links.find((link) => link.oldLink.endsWith('/packs/js/runtime.js'));
+    const pngFilePath = path.resolve(outputDir, pngLink);
+    const cssFilePath = path.resolve(outputDir, cssLink);
+    const jsFilePath = path.resolve(outputDir, jsLink);
 
-    expect(result).toEqual(expectedResult);
+    await fsp.access(pngFilePath, fsp.constants.F_OK);
+    const png = await fsp.readFile(pngFilePath, 'utf-8'); // норм ли для картинки?
+    const css = await fsp.readFile(cssFilePath, 'utf-8');
+    const js = await fsp.readFile(jsFilePath, 'utf-8');
+
+    const expectedPng = await getFixtureContent('nodejs.png');
+    const expectedCss = await getFixtureContent('application.css');
+    const expectedJs = await getFixtureContent('runtime.js');
+
+    expect(png).toEqual(expectedPng);
+    expect(css).toEqual(expectedCss);
+    expect(js).toEqual(expectedJs);
   });
 
   it('should replace links', async () => {
@@ -71,8 +92,8 @@ describe('utils', () => {
       .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
 
     const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
-    const imgSrcs = await downloadImages(url, outputDir, originalHtmlPath);
-    const result = prettier.format(await replaceImgSrcs(originalHtmlPath, imgSrcs), { parser: 'html' });
+    const links = await downloadResources(url, outputDir, originalHtmlPath);
+    const result = prettier.format(await replaceLinks(originalHtmlPath, links), { parser: 'html' });
     const expectedResult = prettier.format(await getFixtureContent('local.html'), { parser: 'html' });
 
     expect(result).toEqual(expectedResult);
