@@ -1,0 +1,2 @@
+const lala = () => {};
+lala();
