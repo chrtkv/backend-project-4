@@ -50,40 +50,51 @@ describe('utils', () => {
   });
 
   it('should download resources', async () => {
-    nock('https://ru.hexlet.io')
-      .get('/assets/professions/nodejs.png')
-      .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
+    try {
+      // TODO: наверное, мжно сюда передавать путь к ресурсу вместо того, чтобы захардкоживать
+      nock('https://ru.hexlet.io')
+        .get('/assets/professions/nodejs.png')
+        .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
 
-    nock('https://ru.hexlet.io')
-      .get('/assets/application.css')
-      .reply(200, await getFixtureContent('application.css'));
+      nock('https://ru.hexlet.io')
+        .get('/assets/application.css')
+        .reply(200, await getFixtureContent('application.css'));
 
-    nock('https://ru.hexlet.io')
-      .get('packs/js/runtime.js')
-      .replyWithFile(200, path.resolve(fixturesPath, 'runtime.js'));
+      nock('https://ru.hexlet.io')
+        .get('/packs/js/runtime.js')
+        .replyWithFile(200, path.resolve(fixturesPath, 'runtime.js.txt'));
 
-    const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
-    const links = await downloadResources(url, outputDir, originalHtmlPath);
+      const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
+      const links = await downloadResources(url, outputDir, originalHtmlPath);
 
-    const pngLink = links.find((link) => link.oldLink.endsWith('/assets/professions/nodejs.png'));
-    const cssLink = links.find((link) => link.oldLink.endsWith('/assets/application.css'));
-    const jsLink = links.find((link) => link.oldLink.endsWith('/packs/js/runtime.js'));
-    const pngFilePath = path.resolve(outputDir, pngLink);
-    const cssFilePath = path.resolve(outputDir, cssLink);
-    const jsFilePath = path.resolve(outputDir, jsLink);
+      const { newLink: pngLink } = links.find((link) => link.oldLink.endsWith('/assets/professions/nodejs.png'));
+      const { newLink: cssLink } = links.find((link) => link.oldLink.endsWith('/assets/application.css'));
+      const { newLink: jsLink } = links.find((link) => link.oldLink.endsWith('/packs/js/runtime.js'));
+      const pngFilePath = path.resolve(outputDir, pngLink);
+      const cssFilePath = path.resolve(outputDir, cssLink);
+      const jsFilePath = path.resolve(outputDir, jsLink);
 
-    await fsp.access(pngFilePath, fsp.constants.F_OK);
-    const png = await fsp.readFile(pngFilePath, 'utf-8'); // норм ли для картинки?
-    const css = await fsp.readFile(cssFilePath, 'utf-8');
-    const js = await fsp.readFile(jsFilePath, 'utf-8');
+      await Promise.all([
+        fsp.access(pngFilePath, fsp.constants.F_OK),
+        fsp.access(cssFilePath, fsp.constants.F_OK),
+        fsp.access(jsFilePath, fsp.constants.F_OK),
+      ]);
 
-    const expectedPng = await getFixtureContent('nodejs.png');
-    const expectedCss = await getFixtureContent('application.css');
-    const expectedJs = await getFixtureContent('runtime.js');
+      const png = await fsp.readFile(pngFilePath, 'utf-8');
+      const css = await fsp.readFile(cssFilePath, 'utf-8');
+      const js = await fsp.readFile(jsFilePath, 'utf-8');
 
-    expect(png).toEqual(expectedPng);
-    expect(css).toEqual(expectedCss);
-    expect(js).toEqual(expectedJs);
+      const expectedPng = await getFixtureContent('nodejs.png');
+      const expectedCss = await getFixtureContent('application.css');
+      const expectedJs = await getFixtureContent('runtime.js');
+
+      expect(png).toEqual(expectedPng);
+      expect(css).toEqual(expectedCss);
+      expect(js).toEqual(expectedJs);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   });
 
   it('should replace links', async () => {
