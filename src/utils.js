@@ -4,6 +4,8 @@ import path from 'path';
 import os from 'os';
 import * as cheerio from 'cheerio';
 
+const BASE_URL = 'https://ru.hexlet.io';
+
 // FIXME: переделать или вообще убрать эту функцию
 const getLocalName = (url, resourceType) => {
   const re = /[^\w]/g;
@@ -35,44 +37,70 @@ const downloadHtml = (url, outputDir) => {
     .then(() => filepath);
 };
 
-const extractSrcs = (htmlPath) => fsp.readFile(htmlPath, 'utf-8')
-  .then((html) => {
-    const $ = cheerio.load(html);
-    const imgSrcs = $('img').map((_, element) => $(element).attr('src')).get();
+const hasSameHostname = (url, base) => {
+  const isRelative = url.startsWith('/');
+  const fullUrl = isRelative ? new URL(url, base) : new URL(url);
+  const { hostname: baseHostname } = new URL(base);
+  const { hostname } = fullUrl;
+  const baseParts = baseHostname.split('.').reverse();
+  const urlParts = hostname.split('.').reverse();
 
-    return imgSrcs;
-  });
+  for (let i = 0; i < baseParts.length; i += 1) {
+    if (urlParts[i] !== baseParts[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const extractLinks = (htmlPath) => {
+  const resourceTypes = [
+    { type: 'link', attr: 'href' },
+    { type: 'script', attr: 'src' },
+    { type: 'img', attr: 'src' },
+  ];
+  return fsp.readFile(htmlPath, 'utf-8')
+    .then((html) => {
+      const $ = cheerio.load(html);
+      const links = resourceTypes
+        .flatMap(({ type, attr }) => $(type).map((_, element) => $(element).attr(attr)).get())
+        .filter((uri) => hasSameHostname(uri, BASE_URL));
+
+      return links;
+    });
+};
 
 // или лучше прям хтмл передавать, а не путь к нему?
-const downloadImages = (url, outputDir, htmlPath) => {
+const downloadResources = (url, outputDir, htmlPath) => {
   const { hostname } = new URL(url);
   const dirpath = getLocalName(url, 'dir');
 
   return fsp.mkdir(path.resolve(outputDir, dirpath), { recursive: true })
-    .then(() => extractSrcs(htmlPath))
+    .then(() => extractLinks(htmlPath))
     .then((imgSrcs) => Promise.all(imgSrcs.map((src) => {
+      console.log(imgSrcs)
       const imgUrl = new URL(src, `https://${hostname}`);
       return axios.get(imgUrl, { responseType: 'arraybuffer' });
     })))
     .then((responses) => Promise.all(responses.map((response) => {
       const oldPath = response.config.url.pathname;
-      const newSrc = path.join(dirpath, getLocalName(`${hostname}${oldPath}`, 'img'));
+      const newLink = path.join(dirpath, getLocalName(`${hostname}${oldPath}`, 'img'));
       const newPath = path.resolve(outputDir, dirpath, getLocalName(`${hostname}${oldPath}`, 'img'));
       fsp.writeFile(newPath, Buffer.from(response.data, 'binary'));
       return {
-        oldSrc: oldPath,
-        newSrc,
+        oldLink: oldPath,
+        newLink,
       };
     })));
 };
 
-const replaceImgSrcs = (htmlPath, imgSrcs) => fsp.readFile(htmlPath, 'utf-8')
+const replaceLinks = (htmlPath, imgSrcs) => fsp.readFile(htmlPath, 'utf-8')
   .then((html) => {
     const $ = cheerio.load(html);
-    imgSrcs.forEach(({ oldSrc, newSrc }) => {
+    imgSrcs.forEach(({ oldLink, newSrc }) => {
       $('img').each((_, element) => {
         const $img = $(element);
-        if ($img.attr('src').endsWith(oldSrc)) {
+        if ($img.attr('src').endsWith(oldLink)) {
           $img.attr('src', newSrc);
         }
       });
@@ -82,5 +110,5 @@ const replaceImgSrcs = (htmlPath, imgSrcs) => fsp.readFile(htmlPath, 'utf-8')
   });
 
 export {
-  getLocalName, downloadHtml, downloadImages, replaceImgSrcs,
+  getLocalName, downloadHtml, downloadResources, replaceLinks,
 };
