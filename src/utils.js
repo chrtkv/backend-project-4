@@ -64,7 +64,8 @@ const extractLinks = (htmlPath) => {
       const $ = cheerio.load(html);
       const links = resourceTypes
         .flatMap(({ type, attr }) => $(type).map((_, element) => $(element).attr(attr)).get())
-        .filter((uri) => hasSameHostname(uri, BASE_URL));
+        .filter((uri) => hasSameHostname(uri, BASE_URL))
+        .map((uri) => new URL(uri, BASE_URL).href);
 
       return links;
     });
