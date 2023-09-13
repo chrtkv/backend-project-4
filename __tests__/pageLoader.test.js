@@ -30,7 +30,7 @@ describe('utils', () => {
     const expectedResult = await getFixtureContent('original.html');
     nock('https://ru.hexlet.io')
       .get('/courses')
-      .reply(200, expectedResult);
+      .reply(200, expectedResult, { 'Content-Type': 'text/html' });
 
     const resultPath = await downloadHtml(url, outputDir);
     const result = await fsp.readFile(resultPath, 'utf-8');
@@ -54,15 +54,19 @@ describe('utils', () => {
       // TODO: наверное, мжно сюда передавать путь к ресурсу вместо того, чтобы захардкоживать
       nock('https://ru.hexlet.io')
         .get('/assets/professions/nodejs.png')
-        .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
+        .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'), { 'Content-Type': 'image/png' });
 
       nock('https://ru.hexlet.io')
         .get('/assets/application.css')
-        .reply(200, await getFixtureContent('application.css'));
+        .reply(200, await getFixtureContent('application.css'), { 'Content-Type': 'text/css' });
 
       nock('https://ru.hexlet.io')
         .get('/packs/js/runtime.js')
-        .replyWithFile(200, path.resolve(fixturesPath, 'runtime.js.txt'));
+        .reply(200, await getFixtureContent('runtime.js.txt'), { 'Content-Type': 'text/javascript' });
+
+      nock('https://ru.hexlet.io')
+        .get('/courses')
+        .reply(200, await getFixtureContent('original.html'), { 'Content-Type': 'text/html' });
 
       const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
       const links = await downloadResources(url, outputDir, originalHtmlPath);
@@ -86,7 +90,7 @@ describe('utils', () => {
 
       const expectedPng = await getFixtureContent('nodejs.png');
       const expectedCss = await getFixtureContent('application.css');
-      const expectedJs = await getFixtureContent('runtime.js');
+      const expectedJs = await getFixtureContent('runtime.js.txt');
 
       expect(png).toEqual(expectedPng);
       expect(css).toEqual(expectedCss);
