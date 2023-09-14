@@ -104,7 +104,19 @@ describe('utils', () => {
   it('should replace links', async () => {
     nock('https://ru.hexlet.io')
       .get('/assets/professions/nodejs.png')
-      .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'));
+      .replyWithFile(200, path.resolve(fixturesPath, 'nodejs.png'), { 'Content-Type': 'image/png' });
+
+    nock('https://ru.hexlet.io')
+      .get('/assets/application.css')
+      .reply(200, await getFixtureContent('application.css'), { 'Content-Type': 'text/css' });
+
+    nock('https://ru.hexlet.io')
+      .get('/packs/js/runtime.js')
+      .reply(200, await getFixtureContent('runtime.js.txt'), { 'Content-Type': 'text/javascript' });
+
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .reply(200, await getFixtureContent('original.html'), { 'Content-Type': 'text/html' });
 
     const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
     const links = await downloadResources(url, outputDir, originalHtmlPath);
