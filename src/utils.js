@@ -60,9 +60,14 @@ const extractLinks = (htmlPath) => {
     .then((html) => {
       const $ = cheerio.load(html);
       const links = resourceTypes
-        .flatMap(({ type, attr }) => $(type).map((_, element) => $(element).attr(attr)).get())
-        .filter((uri) => hasSameHostname(uri, BASE_URL))
-        .map((uri) => new URL(uri, BASE_URL).href);
+        .flatMap(({ type, attr }) => $(type)
+          .map((_, element) => $(element).attr(attr)).get()
+          .map((link) => ({ type, attr, link })))
+        .filter(({ link }) => hasSameHostname(link, BASE_URL))
+        .reduce((acc, item) => {
+          const normalizedUrl = new URL(item.link, BASE_URL).href;
+          return { ...acc, ...{ [normalizedUrl]: { ...item, link: normalizedUrl } } };
+        }, {});
 
       return links;
     });
