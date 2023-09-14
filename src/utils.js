@@ -102,14 +102,16 @@ const downloadResources = (url, outputDir, htmlPath) => {
     .then(() => resourceLinks);
 };
 
-const replaceLinks = (htmlPath, imgSrcs) => fsp.readFile(htmlPath, 'utf-8')
+const replaceLinks = (htmlPath, links) => fsp.readFile(htmlPath, 'utf-8')
   .then((html) => {
     const $ = cheerio.load(html);
-    imgSrcs.forEach(({ oldLink, newSrc }) => {
-      $('img').each((_, element) => {
-        const $img = $(element);
-        if ($img.attr('src').endsWith(oldLink)) {
-          $img.attr('src', newSrc);
+    Object.values(links).forEach(({
+      type, attr, link, newLink,
+    }) => {
+      $(type).each((_, element) => {
+        const $el = $(element);
+        if (link.endsWith($el.attr(attr))) {
+          $el.attr(attr, newLink);
         }
       });
     });
