@@ -75,26 +75,31 @@ const extractLinks = (htmlPath) => {
 
 // или лучше прям хтмл передавать, а не путь к нему?
 const downloadResources = (url, outputDir, htmlPath) => {
-  const { hostname } = new URL(url);
-  const dirpath = getLocalName(url, 'dir');
+  const { dirname } = getLocalName(url);
+  // FIXME: как сделать иначе?
+  let resourceLinks;
 
-  return fsp.mkdir(path.resolve(outputDir, dirpath), { recursive: true })
+  return fsp.mkdir(path.resolve(outputDir, dirname), { recursive: true })
     .then(() => extractLinks(htmlPath))
-    .then((imgSrcs) => Promise.all(imgSrcs.map((src) => {
-      console.log(imgSrcs)
-      const imgUrl = new URL(src, `https://${hostname}`);
-      return axios.get(imgUrl, { responseType: 'arraybuffer' });
-    })))
+    .then((links) => {
+      resourceLinks = links;
+      return Promise.all(Object.keys(links).map((link) => axios.get(
+        new URL(link),
+        { responseType: 'arraybuffer' },
+      )));
+    })
     .then((responses) => Promise.all(responses.map((response) => {
-      const oldPath = response.config.url.pathname;
-      const newLink = path.join(dirpath, getLocalName(`${hostname}${oldPath}`, 'img'));
-      const newPath = path.resolve(outputDir, dirpath, getLocalName(`${hostname}${oldPath}`, 'img'));
-      fsp.writeFile(newPath, Buffer.from(response.data, 'binary'));
-      return {
-        oldLink: oldPath,
-        newLink,
-      };
-    })));
+      const oldPath = response.config.url.href;
+      const { filename } = getLocalName(oldPath);
+      const newLink = path.join(dirname, filename);
+      const newPath = path.resolve(outputDir, dirname, filename);
+      resourceLinks[oldPath].newLink = newLink;
+      if (response.headers['content-type'].includes('text')) {
+        return fsp.writeFile(newPath, response.data.toString());
+      }
+      return fsp.writeFile(newPath, Buffer.from(response.data, 'binary'));
+    })))
+    .then(() => resourceLinks);
 };
 
 const replaceLinks = (htmlPath, imgSrcs) => fsp.readFile(htmlPath, 'utf-8')
