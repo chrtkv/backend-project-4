@@ -19,6 +19,7 @@ const getFixtureContent = (filename) => {
 
 let outputDir;
 const url = 'https://ru.hexlet.io/courses';
+const BASE_URL = 'https://ru.hexlet.io';
 
 beforeEach(async () => {
   outputDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'page-loader-'));
@@ -71,9 +72,9 @@ describe('utils', () => {
       const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
       const links = await downloadResources(url, outputDir, originalHtmlPath);
 
-      const { newLink: pngLink } = links.find((link) => link.oldLink.endsWith('/assets/professions/nodejs.png'));
-      const { newLink: cssLink } = links.find((link) => link.oldLink.endsWith('/assets/application.css'));
-      const { newLink: jsLink } = links.find((link) => link.oldLink.endsWith('/packs/js/runtime.js'));
+      const { newLink: pngLink } = links[`${BASE_URL}/assets/professions/nodejs.png`];
+      const { newLink: cssLink } = links[`${BASE_URL}/assets/application.css`];
+      const { newLink: jsLink } = links[`${BASE_URL}/packs/js/runtime.js`];
       const pngFilePath = path.resolve(outputDir, pngLink);
       const cssFilePath = path.resolve(outputDir, cssLink);
       const jsFilePath = path.resolve(outputDir, jsLink);
@@ -120,8 +121,8 @@ describe('utils', () => {
 
     const originalHtmlPath = path.resolve(fixturesPath, 'original.html');
     const links = await downloadResources(url, outputDir, originalHtmlPath);
-    const result = prettier.format(await replaceLinks(originalHtmlPath, links), { parser: 'html' });
-    const expectedResult = prettier.format(await getFixtureContent('local.html'), { parser: 'html' });
+    const result = await prettier.format(await replaceLinks(originalHtmlPath, links), { parser: 'html' });
+    const expectedResult = await prettier.format(await getFixtureContent('local.html'), { parser: 'html' });
 
     expect(result).toEqual(expectedResult);
   });
