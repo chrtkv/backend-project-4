@@ -6,30 +6,27 @@ import * as cheerio from 'cheerio';
 
 const BASE_URL = 'https://ru.hexlet.io';
 
-// FIXME: переделать или вообще убрать эту функцию
-const getLocalName = (url, resourceType) => {
+// FIXME: переделать
+const getLocalName = (url) => {
   const re = /[^\w]/g;
-
-  if (resourceType === 'img') {
-    const { ext, dir, name } = path.parse(url);
-    return `${dir}/${name}`.replaceAll(re, '-') + ext;
-  }
-
   const { hostname, pathname } = new URL(url);
-  const sanitizedUrl = `${hostname}${pathname}`.replaceAll(re, '-');
+  const { ext, dir, name } = path.parse(pathname);
 
-  if (resourceType === 'html') {
-    return `${sanitizedUrl}.html`;
-  }
+  if (!ext) {
+    const sanitizedUrl = `${hostname}${pathname}`.replaceAll(re, '-');
 
-  if (resourceType === 'dir') {
-    return `${sanitizedUrl}_files`;
+    return {
+      dirname: `${sanitizedUrl}_files`,
+      filename: `${sanitizedUrl}.html`,
+    };
   }
+  const pathWithoutExt = `${hostname}/${dir.slice(1)}/${name}`.replaceAll(re, '-');
+  return { filename: `${pathWithoutExt}${ext}` };
 };
 
 const downloadHtml = (url, outputDir) => {
   const normalizedOutputDir = outputDir.replace(/^~/, os.homedir());
-  const filename = getLocalName(url, 'html');
+  const { filename } = getLocalName(url);
   const filepath = path.resolve(normalizedOutputDir, filename);
 
   return axios.get(url)
