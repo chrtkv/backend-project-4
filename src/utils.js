@@ -4,8 +4,6 @@ import path from 'path';
 import os from 'os';
 import * as cheerio from 'cheerio';
 
-const BASE_URL = 'https://ru.hexlet.io';
-
 // FIXME: переделать
 const getLocalName = (url) => {
   const re = /[^\w]/g;
@@ -50,7 +48,7 @@ const hasSameHostname = (url, base) => {
   return true;
 };
 
-const extractLinks = (htmlPath) => {
+const extractLinks = (htmlPath, origin) => {
   const resourceTypes = [
     { type: 'link', attr: 'href' },
     { type: 'script', attr: 'src' },
@@ -63,9 +61,9 @@ const extractLinks = (htmlPath) => {
         .flatMap(({ type, attr }) => $(type)
           .map((_, element) => $(element).attr(attr)).get()
           .map((link) => ({ type, attr, link })))
-        .filter(({ link }) => hasSameHostname(link, BASE_URL))
+        .filter(({ link }) => hasSameHostname(link, origin))
         .reduce((acc, item) => {
-          const normalizedUrl = new URL(item.link, BASE_URL).href;
+          const normalizedUrl = new URL(item.link, origin).href;
           return { ...acc, ...{ [normalizedUrl]: { ...item, link: normalizedUrl } } };
         }, {});
 
@@ -76,11 +74,12 @@ const extractLinks = (htmlPath) => {
 // или лучше прям хтмл передавать, а не путь к нему?
 const downloadResources = (url, outputDir, htmlPath) => {
   const { dirname } = getLocalName(url);
+  const { origin } = new URL(url);
   // FIXME: как сделать иначе?
   let resourceLinks;
 
   return fsp.mkdir(path.resolve(outputDir, dirname), { recursive: true })
-    .then(() => extractLinks(htmlPath))
+    .then(() => extractLinks(htmlPath, origin))
     .then((links) => {
       resourceLinks = links;
       return Promise.all(Object.keys(links).map((link) => axios.get(
